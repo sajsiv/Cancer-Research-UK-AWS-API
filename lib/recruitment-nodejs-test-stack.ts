@@ -26,9 +26,24 @@ export class RecruitmentNodejsTestStack extends Stack {
     // Giving the getUserLambda permissions to read and write to our dynamo table
     userTable.grantReadWriteData(getUserLambda);
 
+
+    //Lambda function (post new user)
+    const postUserLambda = new Function(this, "PostUserLambdaHandler", {
+      runtime: Runtime.NODEJS_16_X,
+      code: Code.fromAsset("src"),
+      handler: "postUserLambdaHandler.postUserLambdaHandler",
+      environment: {
+        USER_TABLE_NAME: userTable.tableName,
+      }
+    });
+
+    // Giving the postUserLambda permissions to read and write to our dynamo table
+    userTable.grantReadWriteData(postUserLambda);
+
     // create the API gateway
     const api = new RestApi(this, "donation-api");
-    api.root.resourceForPath("donations").addMethod("GET", new LambdaIntegration(getUserLambda));
+    api.root.resourceForPath("users").addMethod("GET", new LambdaIntegration(getUserLambda));
+    api.root.resourceForPath("users").addMethod("POST", new LambdaIntegration(postUserLambda));
 
     new CfnOutput(this, "API URL", {
       value: api.url ?? "Error"
