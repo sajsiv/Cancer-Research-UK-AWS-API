@@ -10,6 +10,18 @@ export type GetUserByEmailEvent = {
 export type PostUserEvent = {
     user: {
       email_address: string,
-      donation: boolean
+      donations: Array<Donation>
     }
+}
+
+export type PostDonationEvent = {
+  donation: {
+    email_address: string,
+    amount: number
+  }
+}
+
+export type Donation = {
+  date: string,
+  amount: number 
 }

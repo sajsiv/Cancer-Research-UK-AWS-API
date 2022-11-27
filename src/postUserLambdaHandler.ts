@@ -21,10 +21,9 @@ exports.postUserLambdaHandler = async (event: APIGatewayEvent, context: Context)
     const body: types.PostUserEvent = JSON.parse(event.body? event.body : "StatusCode: 204 body: null");
     const user = body.user
     const email_address = user.email_address;
-    const donation = user.donation;
+    user.donations = [];
     
     console.info( 'UTC: [', (new Date()).toUTCString, '] Body email:', email_address);
-    console.info( 'UTC: [', (new Date()).toUTCString, '] Body donation:', donation);
 
     var params = {
         TableName: tableName,
