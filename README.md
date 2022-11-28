@@ -2,10 +2,10 @@
 
 Install the following:
   - "aws-cdk": "2.51.1",
-   - "jest": "^26.4.2",
-    - "ts-jest": "^26.2.0",
-    - "ts-node": "^9.0.0",
-    - "typescript": "~3.9.7"
+  - "jest": "^26.4.2",
+  - "ts-jest": "^26.2.0",
+  - "ts-node": "^9.0.0",
+  - "typescript": "~3.9.7"
 
 Run npm install to get the rest of the dependencies
 
