@@ -3,10 +3,17 @@ import { Construct } from 'constructs';
 import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Function, Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import { RestApi, LambdaIntegration } from "aws-cdk-lib/aws-apigateway";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as cdk from "aws-cdk-lib";
 
 export class RecruitmentNodejsTestStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+
+    const fromEmail = new cdk.CfnParameter(this, "fromEmail", {
+      type: "String",
+      description: "email address sending thank you emails when the user has donated twice or more."
+    });
 
     //Dynamodb table
     const userTable = new Table(this, "users", {
@@ -50,6 +57,14 @@ export class RecruitmentNodejsTestStack extends Stack {
         USER_TABLE_NAME: userTable.tableName,
       }
     });
+
+    postDonationLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ses:SendEmail'],
+      resources: ['*'],
+      effect: iam.Effect.ALLOW,
+    }));
+    postDonationLambda.addEnvironment('FROM_EMAIL', fromEmail.valueAsString);
+
 
     // Giving the postUserLambda permissions to read and write to our dynamo table
     userTable.grantReadWriteData(postDonationLambda);

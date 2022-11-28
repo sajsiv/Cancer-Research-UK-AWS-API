@@ -1,3 +1,5 @@
+import AWS = require('aws-sdk');
+
 //Get all types
 import * as types from './types';
 
@@ -10,6 +12,9 @@ import { validateEmail } from './utils/validateEmail';
 
 // Get DynamoDB table name from env variables
 const tableName = process.env.USER_TABLE_NAME;
+
+//Create new Simple Email Service
+const ses = new AWS.SES();
 
 //Create a DocumentClient
 const dynamodb = require('aws-sdk/clients/dynamodb')
@@ -81,6 +86,20 @@ exports.postDonationLambdaHandler = async (event: APIGatewayEvent, context: Cont
 
     try{
         const data = await documentClient.update(params).promise();
+        
+        const moreThanOneDonation = data.Attributes.donations.length > 1; 
+
+        if(moreThanOneDonation){
+            const fromEmail = process.env.FROM_EMAIL;
+            if(fromEmail){
+                await sendEmail(data, fromEmail, context);
+            }else{
+                const error = "No fromEmail environment param has been set"
+                console.error(error)
+                throw error
+            }
+
+        }
 
         const response = {
             statusCode: 200,
@@ -97,3 +116,39 @@ exports.postDonationLambdaHandler = async (event: APIGatewayEvent, context: Cont
         throw err;
     }
 }
+
+async function sendEmail(data: AWS.DynamoDB.DocumentClient.UpdateItemOutput, fromEmail: string, context: Context) {
+    if (!data) {
+        const error = "No data has been entered into the send email function"
+        console.error(error)
+        throw error;
+    }
+
+    if(!data.Attributes){
+        const error = "The attributes property of the data (data.Attributes) received after posting a donation is empty, cannot send email"
+        console.error(error)
+        throw error;  
+    }
+
+    const emailParams = {
+      Destination: {
+        ToAddresses: [data.Attributes.email_address]
+      },
+      Message: {
+        Body: {
+          Text: { Data:  "Thank you for your recent donation!"  + "\n All the best," + "\n Cancer Research UK"}
+        },
+        Subject: { Data: "Thank you for donating!" }
+      },
+      Source: fromEmail
+    };
+  
+    try {
+      console.info(`Attempting to send email to ${data.Attributes.email_address}`, context)
+      await ses.sendEmail(emailParams).promise();
+      console.info(`Email sent to ${data.Attributes.email_address}`, context);
+    } catch (err) {
+      console.error("Error sending email.", context, err);
+      throw err;
+    }
+  }
