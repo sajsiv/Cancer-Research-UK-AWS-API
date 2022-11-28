@@ -1,73 +1,65 @@
-# CRUK Node.js Recruitment Assignment
+### Installation
 
-**Note - for the Python version of this exercise please click [[HERE](https://github.com/CRUKorg/cruk-backend-assignment/tree/python-version)]**
+Install the following:
+    "aws-cdk": "2.51.1",
+    "jest": "^26.4.2",
+    "ts-jest": "^26.2.0",
+    "ts-node": "^9.0.0",
+    "typescript": "~3.9.7"
 
-### Functional Requirements
+Run npm install to get the rest of the dependencies
 
-Build a service in Node.js that can be deployed to AWS which exposes an API and can be consumed from any client. 
+npm run build
+cdk synth
+cdk deploy --parameters fromEmail=example@example.com
 
-This service should check how many donations a user has made and send them a special thank you message (e.g. via SNS) if they make 2 or more donations. 
+### API
 
-### Output Package Requirements
+URL: https://hctdhi0jib.execute-api.us-east-1.amazonaws.com/prod/
 
-The solution has to be provided as a Github repository including full commit history.
+There are 3 routes
 
-Please follow the frequent commit practice so that your local repository indicates reasonable milestones of your implementation.
+/users (GET)
+- send off a GET request with a query parameter to get a single users data
+- e.g. /users?email_address=example@example.com
+- uses the getUserLambdaHandler
 
-The repository MUST contain:
+/users (POST)
+- send off a POST request with a user JSON to post a new user
+- JSON must be of the following form
+{
+    "user": {
+        "email_address": "example@example.com",
+        "donations": []
+    }
+}
+- uses the postUserLambdaHandler
 
-- Source code
-    - It should be buildable/viewable.
-    - It must be written in Typescript.
-    - In case you need to use external libraries, please add them.
-- Infrastructure as Code (We use the AWS CDK and encourage you to use this also, but we will accept the use of Cloudformation or Terraform if you feel more comfortable with these technologies). Please refrain from using the Serverless Framework for this task.
-- Adequate tests.
-- Any installation and deployment instructions for apps and components.
-- README file with URL for testing the service online and a brief explanation on the scalability strategy.
+/donations (POST)
+- send off a POST request with a donation JSON to post a new donation
+- JSON must be of the following form
+{
+    "donation": {
+        "email_address": "example@example.com",
+        "amount": "4"
+    }
+}
+- uses the postDonationLambdaHandler
 
-### Rules
+### Scaling
 
-If you do not complete the test please indicate how you would intend to finalise it in the README. 
+Lambda has a limit of 1000 concurrent executions, which are the number of servers processing the requests. The exact amount of calls depends on the length of each execution. If a request takes 1ms, the upper limit is a million requests a second. However, these requests take much longer, especialling posting and sending a new users. The limit is closer to 1000 requests a second.
 
-The team is looking to see how you approach a problem with a broad spec which could have a number of different solutions and then explaining your approach? Keep the implementation simple, but make sure you have automated tests, logging (structured logs with JSON), and include information in the README about how you'll scale the solution to thousands of users, how you'd approach logging & monitoring at scale so that you can actually debug the system as it increases in complexity.
+Regardless of this, API Gateway also puts a limit of 1000 requests a second being received at a steady rate.
 
-We are not expecting the solution to be deployed, but we expect you to understand the process and best practices around the deployment process. It’s enough if you could provide to our engineers clear and easy instructions on how to deploy your application.
+Although these are hard limits, it is unlikely the app will have to process so many requests in such a sort amount of time. However, during fundraising events (e.g. TV shows raising money for CRUK) this may cause an issue. API Gateway has a seperate burst limit of 5000 requests a second for unusual high demand, this may be able to handle these spikes in requests.
 
-### FAQ's
+AWS SES is the largest challenge to scaling. At the moment it is in sandbox mode, so it can only send and receive emails from my email address. The AWS support team need to verify the application before allowing it out of sandbox mode, allowing it to send automated emails.
 
-*Any client - what are the clients?*
+### Logging
 
-A client is a consumer of the API (e.g. web app, another backend service, a mobile app, etc). In this case "Any client" means for us, the API can and should be implemented independently of who/what is going to consume it.
+To make the logging more suitable for large scale production, I would make the logs structure more consistent. There should be the same ordering of variables (consistent formatting), e.g. message, context, error. This allows easier searching and easier integration when an application needs to consume log data from a different one. It also improves readibility when the logs have to be investigated.
 
-*Does this sit behind an API Gateway?*
+### Unfinished
 
-Whilst this is not strictly required, it’s just one of various solutions on AWS for exposing your API
-
-*How is authentication performed?*
-
-We are not looking at the implementation of the authentication in the code challenge.
-
-*Will the API receives a token in the header (JWT with authentication service defined)?*
-
-Not necessarily, as per the answer above the authentication is not required for this task.
-
-*Will only certain roles be able to call the API (eg, AWS IAM Permissions with AWS API Gateway)?*
-
-Again, no authorisation or permissions are expected to be set for the coding challenge. We can discuss these things during the F2F interview.
-
-*Will I need to persist donations data in a database?*
-
-Most candidates have used an in-memory store which saves them time to provision and deploy machines/databases. If you want to use a specific data store we don’t have any objection.
-
-*Is there a standardised/preferred method of logging?*
-
-We don’t expect the coding challenge to be production-ready and ship logs anywhere but having basic error handling is considered a minimum requirement. You will definitely get extra points if you handle and log successfully edge-cases and critical paths (e.g. fatal errors).
-
-*In terms of deploying to AWS, should I include a build pipeline or can that be done manually?*
-
-Do it manually, it's a one-time thing
-
-*Can we implement this using AWS Lambda?*
-
-Absolutely! show us your AWS chops
-
+I did not get around to writing tests, although they are very valuable. This is my first AWS project, it was challenging but I learnt loads whilst getting it done!
